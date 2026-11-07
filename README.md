@@ -134,7 +134,7 @@ BigmeB6\
 ### 环境
 - Magisk 28.1（Zygisk 启用）+ LSPosed v1.9.2（zygisk 版）
 - 模块：`screensaver` 工程构建的 APK（`com.bigme.screensaver`），LSPosed 里启用、作用域 `com.xrz.standby`
-- 背景图：Magisk 模块 `bgsaver` 放到 `/system/etc/ssbgx.jpg`（原图 585KB）
+- 背景图：Magisk 模块 `bgsaver` 放到 `/system/etc/ssbgx.jpg`（图片自行准备，见「自定义背景图」）
 
 ### 已实现（HookInit.java）
 1. **背景图**：hook `Dialog.show()`，设内容根 View 背景 + 清子 View 背景
