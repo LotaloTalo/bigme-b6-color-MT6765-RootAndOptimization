@@ -1,0 +1,20 @@
+# 设备备份与镜像（含个人数据，勿公开）
+backup/
+tmp/
+
+# 工具（jadx、adb 等二进制，体积大）
+tools/
+
+# 构建产物与缓存
+**/build/
+**/.gradle/
+*.apk
+*.img
+*.bin
+*.jar
+
+# 日志与临时文件
+*.log
+watch*.log
+__pycache__/
+*.pyc
