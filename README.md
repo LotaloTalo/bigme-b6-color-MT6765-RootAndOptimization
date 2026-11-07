@@ -50,13 +50,15 @@
 | 存储 | 4GB RAM / 64GB eMMC，A/B 分区 + super |
 | 输入法 | `com.xrz.input`（Gboard 不在默认路径） |
 
-## 当前状态（）
+## 当前状态
 
 - ✅ 系统正常：`boot_completed=1`，桌面/设置/番茄都能启动，无 FATAL
-- ✅ 番茄 7.4.3.32 已安装、协议已同意、通知权限已拒绝
-- ✅ 番茄 appops 限制已设置：`RUN_IN_BACKGROUND=ignore`、`WAKE_LOCK=ignore`、`standby-bucket=restricted`、移出 deviceidle 白名单
-- ⚠️ **appops 重启后会被系统重置**（已实测），每次开机需重跑 `scripts\apply_limits.ps1`
-- ❌ 组件级禁用（116 项）被 ROM 拒绝：`SecurityException: Shell cannot change component state`（Android 14 + user 版限制，只能 root 后做）
+- ✅ root 已完成（Magisk 28.1，Zygisk 启用）
+- ✅ 番茄 appops 限制已设置，且**开机自动重跑**（见 `scripts/apply_limits.ps1` 与开机脚本）
+- ✅ 番茄 appops 重启后曾被系统重置 → 已用 Magisk `service.d` 开机脚本自动恢复，无需手动操作
+- ✅ 番茄推送组件已禁用（小米/华为/vivo/字节，10 个）
+- ✅ 系统内置应用已停用 4 个（大我语记、bigme cloud、MTK 语音命令/解锁）
+- ✅ 分区备份已完成（`backup/edl/`，含 boot/init_boot/vbmeta A+B）
 
 ## 目录
 
@@ -79,7 +81,7 @@ BigmeB6\
 
 | 项 | 值 |
 |---|---|
-| build | `Bigme_V1.020260803`（） |
+| build | `Bigme_V1.020260803` |
 | fingerprint | `Bigme/HiBreak/Smartphone:14/UP1A.231005.007/1739236620:user/dev-keys` |
 | 安全补丁 |  |
 | 签名密钥 | **dev-keys**（测试密钥，解锁 bootloader 相对有利） |
@@ -88,18 +90,13 @@ BigmeB6\
 关键分区（备份重点）：
 `boot_a/b`(p22)、`init_boot_a/b`(p24)、`vbmeta_a/b`(p27/p43)、`vbmeta_system_*`、`vbmeta_vendor_*`、`dtbo_a/b`、`vendor_boot_a/b`(p23)、`seccfg`(p11)、`preloader_a/b`、`lk_a/b`、`super`(p42)、`userdata`(p47)
 
-## 救砖手段现状
+## 救砖现状
 
-| 手段 | 状态 |
-|---|---|
-| **分区备份** | ⏳ 待做（需要 EDL；这是最可靠的一手备份，必须最先完成） |
-| 官方固件 | ❌ 公开渠道没找到与 `Bigme_V1.020260803` 匹配的 MT6765 包；GSMForum 有 B531 4.x / B651 1.9.6，版本体系不同且需付费；firmwaredrive 上 HiBreak 只有 LineageOS 18.1 |
-| LineageOS 18.1 | 备选（会替换系统、丢墨水屏优化，最后手段） |
-| SP Flash Tool | ⏳ 未下载（有固件才需要） |
-| factory reset | ✅ 已验证可用（recovery 选项） |
-| 长按电源退出 EDL | ✅ 已确认可用 |
-
-> 结论：**root 前必须先解决 EDL 连接并完成分区备份**；官方固件不可得的条件下，分区备份是唯一可靠救砖手段。
+- ✅ **分区备份已完成**：`backup/edl/` 含 boot_a/b、init_boot_a/b、vbmeta_a/b、magisk_patched.img
+- ✅ factory reset 可用（recovery 选项）
+- ✅ 长按电源可退出 EDL
+- ⏳ SP Flash Tool / 官方固件未获取（官方固件公开渠道没有 MT6765/B6 匹配包）
+- 备选：LineageOS 18.1（会丢墨水屏优化，最后手段）
 
 ## Root 计划（参考 daaaaan/bigme-b6-mt6765）
 
@@ -227,9 +224,9 @@ BigmeB6\
 
 ### 番茄现状
 - 1 个进程（appops 限制生效，后台 :push 等未启动）
-- appops 限制：RUN_IN_BACKGROUND/WakeLock ignore、standby-bucket restricted、移出 deviceidle 白名单（重启后需重跑 `apply_limits.ps1`）
+- appops 限制：RUN_IN_BACKGROUND/WakeLock ignore、standby-bucket restricted、移出 deviceidle 白名单（已通过开机脚本自动恢复）
 
-## 番茄阅读页电量（，已完成）
+## 番茄阅读页电量（已完成）
 
 - 目标：阅读页底部右侧「时间 + 电池图标」→ 只显示百分比
 - 定位：`LinearLayout h6o`（[827,1391][974,1430]）内含 时间 TextView + 电池图标 View（自定义绘制）
@@ -238,7 +235,7 @@ BigmeB6\
   - 新增一个 TextView 显示 `BatteryManager` 的 `BATTERY_PROPERTY_CAPACITY + "%"`
 - 效果：阅读页底部只剩「时间 + 百分比」，电池图标消失 ✓
 
-## 番茄阅读页文字转黑（）
+## 番茄阅读页文字转黑
 
 - 顶部书名 `jer`（"第103章 【随机传送】…"）：文字里带**灰色 ForegroundColorSpan**，`setTextColor` 无效，必须先把 Span 去掉
   → hook 里对 `startsWith("第") && contains("章")` 的 TextView 做 `SpannableString` + `removeSpan(ForegroundColorSpan)` + `setTextColor(BLACK)`
@@ -271,7 +268,7 @@ BigmeB6\
 
 **日志标记**：`setAlarm(mins) -> powerSaving end in Ns`
 
-## 停用的 B6 内置应用（）
+## 停用的 B6 内置应用
 
 | 应用 | 包名 | 说明 |
 |---|---|---|
