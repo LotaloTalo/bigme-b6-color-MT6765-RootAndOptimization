@@ -1,5 +1,7 @@
 # Bigme B6（HiBreak / Android 14 / MT6765）工作区
 
+> **硬件**：联发科 MT6765（Helio P35/G35 系列，ARM Cortex-A53 4×2.2GHz + 4×1.8GHz，8 核，12nm，最高 2.2GHz），10.3 英寸墨水屏，Android 14，4GB RAM。
+
 > 记录 2026-11-06/07 的番茄精简、root 与屏保改造。所有设备相关文件都在本目录。
 
 ## 总览：已完成的优化（分类）
