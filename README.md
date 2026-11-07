@@ -314,3 +314,13 @@ BigmeB6\
 
 > 横竖屏共用同一张图，hook 会按屏幕比例裁剪（CENTER_CROP），不会拉伸变形。
 
+### 屏保文字配色（可选）
+
+默认是 **白字 + 黑色软阴影**（适合中间调/偏深的背景图）。如果背景图偏亮、觉得白字看不清，可以换成 **黑字 + 白色软阴影**：改 `screensaver/app/src/main/java/com/bigme/hooksaver/HookInit.java` 里 `styleOthers`：
+
+```java
+t.setTextColor(Color.BLACK);          // 原为 WHITE
+t.setShadowLayer(6f * density, 0f, 0f, Color.WHITE);  // 原为 BLACK
+```
+
+改完重新构建安装即可，效果见仓库 `已验证不可行` 上方说明。
