@@ -1,5 +1,7 @@
 # Bigme B6（HiBreak / Android 14 / MT6765）工作区
 
+> **说明**：本仓库内容主要由 AI（DeepSeek）生成，经人工验证。README 按「成功方法 + 已验证不可行」组织，**建议直接把本 README 交给 AI 辅助阅读**，再按自己设备情况适配。
+
 > **硬件**：联发科 MT6765（Helio P35/G35 系列，ARM Cortex-A53 4×2.2GHz + 4×1.8GHz，8 核，12nm，最高 2.2GHz），10.3 英寸墨水屏，Android 14，4GB RAM。
 
 > 记录本设备的番茄精简、root 与屏保改造。所有设备相关文件都在本目录。
@@ -14,6 +16,11 @@
 | Magisk 模块 | `bgsaver`（提供自定义背景图 `/system/etc/ssbgx.jpg`） |
 | 开机脚本 | `/data/adb/service.d/99_tomato_limits.sh`（开机自动重跑番茄 appops 限制） |
 
+**已验证不可行**
+- 用 Magisk 模块替换系统 APK：与 PackageManager 的签名记录冲突 → bootloop，只能 EDL 救
+- user 版 ROM 下 shell 执行 `pm disable` 会被拒（`SecurityException`），必须 root
+- appops 设置在这台 ROM 上重启会被重置，靠开机脚本恢复，不要指望持久
+
 ### 二、锁屏个性化（屏保）
 | 项 | 内容 |
 |---|---|
@@ -24,6 +31,13 @@
 | 白底 bug | 容器背景清理（show + updateLogo + onDraw 兜底） |
 | 0 点自动换日 | 每分钟刷新 + 省电时段 0:02-23:58（刷新窗口 23:58-0:02） |
 | 省电 alarm | 锁屏时只留 1 个 alarm（不再每分钟唤醒 CPU），实测跨 0 点日期正常更新 |
+
+**已验证不可行**
+- 替换 View 做日号描边：`DailyTimeView` 内部持有 `tvDay` 引用，日期一变就失效 → 必须 hook `onDraw`
+- 在 `AlarmReceiver` 里 `Activity.recreate()` 强制刷新：会把 `system_server` 拖崩（PowerStandbyManager Handler FATAL）
+- e-ink 熄屏单次 alarm 刷新：面板不重画，刷不出来 → 必须用「每分钟 + 省电窗口」连续刷新
+- `BitmapDrawable` 没有 `CENTER_CROP`（`Gravity` 里不存在这个常量），横竖屏裁剪要用 `ImageView` 背景层
+- Launcher3 的 -1 屏：主屏幕设置里没有开关，改系统 Launcher 风险高，不建议
 
 ### 三、番茄优化
 | 项 | 内容 |
@@ -36,6 +50,12 @@
 | 阅读页文字 | 书名/页码/时间/段末评论气泡数字全部改黑字 |
 | 缓存清理 | 34MB → 4KB |
 
+
+**已验证不可行**
+- 隐藏番茄底部/频道 Tab：Tab 是自绘 ViewGroup，`GONE`/`removeView` 后点击区仍在（按坐标响应）
+- `onTouchEvent` / `dispatchTouchEvent` 拦截 Tab 点击：点击在自绘容器内部消耗，拦不到
+- 默认启动书架：无配置入口，用点击模拟有 1~2 秒闪烁，体验不佳
+- 广告 SDK 初始化 hook：免广告会员已由服务端控制，客户端 hook 收益小、风险高
 
 ---
 
