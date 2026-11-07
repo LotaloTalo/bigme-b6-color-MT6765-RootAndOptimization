@@ -1,20 +1,20 @@
-# 设备备份与镜像（含个人数据，勿公开）
+﻿# 设备备份与镜像（backup 目录整体不传）
 backup/
 tmp/
 
-# 工具（jadx、adb 等二进制，体积大）
+# 工具（jadx、adb 等二进制）
 tools/
 
 # 构建产物与缓存
 **/build/
 **/.gradle/
 *.apk
-*.img
 *.bin
-*.jar
+
+# firmware 目录例外（boot/vbmeta 镜像，单独放行）
+!firmware/*.img
 
 # 日志与临时文件
 *.log
-watch*.log
 __pycache__/
 *.pyc
