@@ -278,3 +278,19 @@ BigmeB6\
 | MTK 语音解锁 | `com.mediatek.voiceunlock` | 联发科语音解锁 |
 
 恢复：`su -c 'pm enable <包名>'`
+
+## 自定义背景图（换成你自己的图）
+
+本仓库**不包含**任何个人背景图片，需要你自己放一张：
+
+1. **准备图片**：任意竖图（建议 1072×1448 或同比例，JPG，尽量 < 2MB）
+2. **推送到设备**：
+   ```powershell
+   adb push 你的图片.jpg /sdcard/ssbgx.jpg
+   adb shell "su -c 'cp /sdcard/ssbgx.jpg /system/etc/ssbgx.jpg'"
+   ```
+3. **确认 Magisk 模块生效**：背景图由 `bgsaver` 模块提供（把图放到 `/system/etc/ssbgx.jpg`）
+4. **锁屏查看**：熄屏再亮屏，背景图应出现在屏保上
+
+> 横竖屏共用同一张图，hook 会按屏幕比例裁剪（CENTER_CROP），不会拉伸变形。
+
