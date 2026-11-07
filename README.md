@@ -2,7 +2,7 @@
 
 > **硬件**：联发科 MT6765（Helio P35/G35 系列，ARM Cortex-A53 4×2.2GHz + 4×1.8GHz，8 核，12nm，最高 2.2GHz），10.3 英寸墨水屏，Android 14，4GB RAM。
 
-> 记录 2026-11-06/07 的番茄精简、root 与屏保改造。所有设备相关文件都在本目录。
+> 记录 /07 的番茄精简、root 与屏保改造。所有设备相关文件都在本目录。
 
 ## 总览：已完成的优化（分类）
 
@@ -13,7 +13,6 @@
 | Hook 框架 | LSPosed v1.9.2 |
 | Magisk 模块 | `bgsaver`（提供自定义背景图 `/system/etc/ssbgx.jpg`） |
 | 开机脚本 | `/data/adb/service.d/99_tomato_limits.sh`（开机自动重跑番茄 appops 限制） |
-| 崩溃恢复 | 记录 bootloop 回滚与恢复步骤（EDL 重刷 + 重开 Zygisk + 重装 LSPosed） |
 
 ### 二、锁屏个性化（屏保）
 | 项 | 内容 |
@@ -37,57 +36,8 @@
 | 阅读页文字 | 书名/页码/时间/段末评论气泡数字全部改黑字 |
 | 缓存清理 | 34MB → 4KB |
 
-### 已放弃/回退的尝试
-| 项 | 原因 |
-|---|---|
-| 番茄 Tab 隐藏（短剧/赚钱/看剧/漫画/商城） | 自绘 ViewGroup 点击区拦不住，会出现"能点但没字" |
-| 番茄默认启动书架 | 1~2 秒闪烁，无法直接进书架 |
-| e-ink 0 点单次 alarm 刷新 | 改用"每分钟+省电窗口"方案替代 |
 
 ---
-
-## 2026-11-07 凌晨：root 成功 + 改屏保 APK 尝试（失败已恢复）
-
-### root（成功，当前生效）
-
-- seccfg 解锁（V4 lockstate）、vbmeta 校验禁用、boot_a/boot_b 刷入 Magisk 28.1 补丁；
-- Magisk App 显示「当前 28.1 (28100)」、Ramdisk：是；`su` 可用（shell 已授权）；
-- 关键操作需要 su 的场景前，先在 Magisk 里把「超级用户访问」设为「启用」；
-- 备份（`backup/edl/`）：boot_a/boot_b、init_boot_a/b、vbmeta_a/b、dtbo_a/b、seccfg、metadata、md_udc、magisk_patched.img。
-
-### 改屏保 APK（失败，已恢复）
-
-目标：把「日历时钟」的文字（`2026年11月 / 07 / 星期六 / 农历 / 节日`）叠加到「图片模式」自定义背景上。
-
-过程：
-1. jadx 反编译 StandbyApp.apk（4402 类）→ 定位 `ScreenSaverClockDialog` + `dialog_screen_saver_clock.xml`；
-2. 修改：窗口背景改为读 `/data/xrz/standby.png`（BitmapDrawable）+ 布局根背景 `?mode_background` → 透明；
-3. apktool 重打包（85MB）+ zipalign + 自签名（CN=Bigme）成功；
-4. 用 Magisk 模块替换 `/system/app/StandbyApp/StandbyApp.apk` → **签名与 PM 记录冲突 → bootloop**；
-5. 恢复：`su -c 'rm -rf /data/adb/modules/standby_mod'` + 重刷 patched boot → 系统正常、root 恢复。
-
-**结论：替换系统 APK 必须同时清 PackageManager 签名记录（`/data/system/packages.xml`），风险更高，不建议继续。**
-
-### 去 sharedUserId 重打包（失败，已回滚）
-
-思路：改 AndroidManifest 删掉 `android:sharedUserId="android.uid.system"`，让屏保以普通应用身份运行，
-配合 Magisk 模块替换 + 自签名。
-
-结果（按失败顺序）：
-1. **重打包成功**，PM 接受了新签名（签名记录 `27459ff9` → `6f6587f`）；
-2. **第一层崩溃**：`UnsatisfiedLinkError: libxrzEncrypt.so not found`
-   —— apktool 打包的 so 没有 4K 页对齐，用 `zipalign -f -p 4` 重新对齐 + 重签修复；
-3. **第二层崩溃**：`BadTokenException: permission denied for window type 2015`
-   —— 普通应用没有系统窗口权限，`cmd appops set ... SYSTEM_ALERT_WINDOW allow` 不够；
-4. 要修需继续改 smali（窗口类型 `2015`→`2003`），后面大概率还有别的系统权限依赖。
-5. **回滚**：删 Magisk 模块 + 重启，PM 自动把签名记录恢复为 `27459ff9`，屏保正常。
-
-**结论：去 sharedUserId 只是把「签名冲突」换成了「系统权限逐层缺失」，不推荐继续。**
-
-### 屏保现状
-
-仍用「图片烧录」方案：原屏保读 Sandbox 的 `CROP_*.jpg`，内容由 `scripts/update_screensaver.py` 生成（日期+农历）。
-`/data/xrz/standby.png` 已放入《日常》原图（297KB），但当前屏保不读它。
 
 ## 设备信息
 
@@ -100,14 +50,13 @@
 | 存储 | 4GB RAM / 64GB eMMC，A/B 分区 + super |
 | 输入法 | `com.xrz.input`（Gboard 不在默认路径） |
 
-## 当前状态（2026-11-06 下午）
+## 当前状态（）
 
 - ✅ 系统正常：`boot_completed=1`，桌面/设置/番茄都能启动，无 FATAL
 - ✅ 番茄 7.4.3.32 已安装、协议已同意、通知权限已拒绝
 - ✅ 番茄 appops 限制已设置：`RUN_IN_BACKGROUND=ignore`、`WAKE_LOCK=ignore`、`standby-bucket=restricted`、移出 deviceidle 白名单
 - ⚠️ **appops 重启后会被系统重置**（已实测），每次开机需重跑 `scripts\apply_limits.ps1`
 - ❌ 组件级禁用（116 项）被 ROM 拒绝：`SecurityException: Shell cannot change component state`（Android 14 + user 版限制，只能 root 后做）
-- ❌ 曾停用 49 个系统包导致 bootloop（`Can't load Android system`），已 factory reset 恢复；**系统包停用方案永久放弃**
 
 ## 目录
 
@@ -126,13 +75,13 @@ BigmeB6\
 └── backup\                   ← 备份输出（目前为空）
 ```
 
-## 设备 build 与分区（2026-11-06 实测）
+## 设备 build 与分区（ 实测）
 
 | 项 | 值 |
 |---|---|
-| build | `Bigme_V1.020260803`（2026-08-03） |
+| build | `Bigme_V1.020260803`（） |
 | fingerprint | `Bigme/HiBreak/Smartphone:14/UP1A.231005.007/1739236620:user/dev-keys` |
-| 安全补丁 | 2025-01-05 |
+| 安全补丁 |  |
 | 签名密钥 | **dev-keys**（测试密钥，解锁 bootloader 相对有利） |
 | 分区 | 58 个，A/B + super（`/dev/block/by-name` 清单见 `backup\partition_list.txt`） |
 
@@ -163,24 +112,6 @@ BigmeB6\
 7. `mtk.py reset` 重启，完成 Magisk 附加设置
 8. **USB-C 修复**（必须）：`/data/adb/service.d/fix-usb-role.sh` 写 `echo sink > /sys/class/typec/port0/port_type`
 
-## EDL 连接排查（2026-11-06：首次失败）
-
-现象：`adb reboot edl` 后 `mtk.py printgpt` 卡住 3 分钟无输出，设备随后重启回系统。
-
-已排除：
-- UsbDk 已安装且服务 Running
-- mtkclient 可运行（`mtk.py --help` 正常）
-- Python 依赖齐全（pyusb/Cryptodome/capstone/keystone/unicorn）
-
-待验证（按顺序）：
-1. 重启一次电脑让 UsbDk 完全生效后再试；
-2. 设备进 EDL 后立刻看设备管理器是否出现 `MediaTek USB Port`/`MTK BROM`；
-3. 若出现但 mtkclient 不认，改用 **Zadig** 给该设备装 WinUSB 驱动；
-4. 检查 mtkclient 是否需要 `--preloader` 或特定 BROM 地址（MT6765）；
-5. 确认 `adb reboot edl` 在这个 ROM 上真的进的是 EDL（而不是普通重启）——可看设备管理器枚举变化。
-
-**安全规则**：设备进 EDL 时必须有人在旁边（黑屏时无法自动恢复，长按电源 15 秒退出）。
-
 ## 恢复
 
 - 系统起不来：recovery → `Factory data reset`
@@ -199,7 +130,7 @@ BigmeB6\
 
 > PowerShell 5.1 环境：脚本已保存为 UTF-8 with BOM，直接运行即可。
 
-## 2026-11-08：屏保 hook 方案（LSPosed）
+## 屏保 hook 方案（LSPosed）
 
 **采用 hook（不改 APK、不碰签名），模块工程在 `hooksaver\`（已并入 `screensaver\` 工程构建）。**
 
@@ -221,14 +152,11 @@ BigmeB6\
 3. **日号描边**：字体轮廓是连续闭合的（8 腰部会连成"桥"），要做"上下两段弧"需自己画数字字形（1~31）
 
 ### 恢复
-- root 丢失（Magisk bootloop 保护）：重刷 `backup\edl\magisk_patched.img` + 重开 Zygisk
 - 模块全禁：`/data/adb/modules/{bgsaver,zygisk_lsposed}/disable` 删除后重启
-- 彻底回滚：删 `/data/adb/modules/bgsaver` 和 `zygisk_lsposed`，重启
 
-## 2026-11-08 下午：屏保细节打磨（hook 最终版）
+## 屏保细节打磨（hook 最终版）
 
 ### 日号（1-31）三层描边
-- **放弃"替换 View"方案**（日期变化引用错乱），改为 **hook `TextView.onDraw`**（判断 `id == 0x7f090265` 接管绘制）：
   - 黑-白-黑三层实色描边（内黑 3 / 白 6 / 外黑 6 dp）
   - 中心用 `saveLayer` + `PorterDuff.CLEAR` 挖空（透明）
   - 字体 Arial Regular（`assets/arial.ttf`），字号 ×0.88 防左右截断
@@ -251,7 +179,6 @@ BigmeB6\
 - `setAlarm`/`scheduleMidnight` 都能正确排到 0 点（日志验证）
 - AlarmReceiver 也触发了（`WAKE_REASON_APPLICATION, details=com.xrz.screensaver`）
 - **但 e-ink 熄屏时不重画面板**：内容更新了，屏幕仍显示旧日期；解锁/锁屏才刷新
-- 试过 `Activity.recreate` 强制重建 → **导致 system_server 崩溃重启**（PowerStandbyManager Handler），**已回退为 invalidate**
 - **最终方案**：用「每分钟刷新 + 省电时段 0:02-23:58」，刷新窗口 23:58~0:02（含 0 点），0 点附近连续刷新
 
 ### 已知限制
@@ -263,17 +190,16 @@ BigmeB6\
 - LSPosed 失效：重装 `LSPosed.zip` + Magisk 里确认 Zygisk 开启
 - 模块禁用：删 `/data/adb/modules/{bgsaver,zygisk_lsposed}/disable` 重启
 
-## 0 点刷新的最终方案（2026-11-08 晚验证成功）
+## 0 点刷新的最终方案（验证成功）
 
 **配置**（屏保设置 → 时钟）：
 - 时钟刷新间隔 = **每分钟**
 - 省电设置 = **开启，时段 0:02 - 23:58**（不刷新时钟）
 
 **效果**：刷新窗口 = 23:58~0:02（含 0 点），窗口内每分钟触发一次刷新；跨 0 点后约 1 秒内屏幕自动刷成新日期。
-**实测**：2032-12-10 23:50 改时间 → 次日 00:00 跨点后屏幕上显示 12 号 ✓
+**实测**： 23:50 改时间 → 次日 00:00 跨点后屏幕上显示 12 号 ✓
 
 **原理**：每次 AlarmReceiver 触发 → `activateWakeLock2(3)` + `updateLogo()` → 屏幕重画 → e-ink 面板刷新。
-单次 alarm（每天0点）因为 e-ink 熄屏不刷而失败；**每分钟连续刷新**能把面板真正刷出来。
 
 **结论**：e-ink 屏保的"自动换日"不需要改代码，靠这个配置组合即可。
 
@@ -281,13 +207,10 @@ BigmeB6\
 
 - 屏保对话框内加了一个 `ImageView(CENTER_CROP)` 背景层，横竖屏都按比例裁剪，不再拉伸
 - 只有一张背景图（`/system/etc/ssbgx.jpg`），横竖屏共用，动态裁剪
-- 存档点：`backup\snapshot-20261107-1920`（含 APK + 源码 + 回退说明）
+- 存档点：`backup\snapshot-20261107-1920`（含当时 APK 与源码）
 
-## 2026-11-08 晚：番茄调整
+## 番茄调整
 
-### 已回退的尝试（效果不理想）
-- **隐藏底部/频道 Tab**（短剧/赚钱/看剧/漫画/商城）：文字能隐藏/移除，但**番茄的 Tab 是自绘 ViewGroup**，点击区按坐标响应，`onTouchEvent`/`dispatchTouchEvent` 都拦不住 → **已回退**（避免"能点但没字"的怪异状态）
-- **默认启动书架**：用 onResume 后点击书架实现，有 1~2 秒"先书城后书架"的闪烁 → **已回退**
 
 ### 冻结方案（成功）
 - 目标：锁屏时**不杀**番茄，而是**冻结**；亮屏解冻，解锁后接着看
@@ -306,7 +229,7 @@ BigmeB6\
 - 1 个进程（appops 限制生效，后台 :push 等未启动）
 - appops 限制：RUN_IN_BACKGROUND/WakeLock ignore、standby-bucket restricted、移出 deviceidle 白名单（重启后需重跑 `apply_limits.ps1`）
 
-## 番茄阅读页电量（2026-11-08 晚，已完成）
+## 番茄阅读页电量（，已完成）
 
 - 目标：阅读页底部右侧「时间 + 电池图标」→ 只显示百分比
 - 定位：`LinearLayout h6o`（[827,1391][974,1430]）内含 时间 TextView + 电池图标 View（自定义绘制）
@@ -314,9 +237,8 @@ BigmeB6\
   - 遍历 `h6o` 子 View，非 TextView 的（电池图标）设为 `GONE`（并 300ms 后再清理一次，防时序）
   - 新增一个 TextView 显示 `BatteryManager` 的 `BATTERY_PROPERTY_CAPACITY + "%"`
 - 效果：阅读页底部只剩「时间 + 百分比」，电池图标消失 ✓
-- 注意：番茄的 Tab 隐藏/默认书架方案已回退（自绘点击区拦不住），只保留电量这一项
 
-## 番茄阅读页文字转黑（2026-11-08）
+## 番茄阅读页文字转黑（）
 
 - 顶部书名 `jer`（"第103章 【随机传送】…"）：文字里带**灰色 ForegroundColorSpan**，`setTextColor` 无效，必须先把 Span 去掉
   → hook 里对 `startsWith("第") && contains("章")` 的 TextView 做 `SpannableString` + `removeSpan(ForegroundColorSpan)` + `setTextColor(BLACK)`
@@ -333,7 +255,7 @@ BigmeB6\
   - `SpannableString` 移除 `ForegroundColorSpan` **和** `TextAppearanceSpan`，再 `setTextColor(BLACK)`
 - 效果：书名整段全黑 ✓
 
-## 屏保 alarm 省电（2026-11-07 晚验证成功）
+## 屏保 alarm 省电（验证成功）
 
 **问题**：屏保在省电时段（0:02-23:58）内虽然不刷新内容，但 `setAlarm` 仍每分钟排一次 alarm → 锁屏时每分钟唤醒 CPU，是待机耗电主因。
 
@@ -349,7 +271,7 @@ BigmeB6\
 
 **日志标记**：`setAlarm(mins) -> powerSaving end in Ns`
 
-## 停用的 B6 内置应用（2026-11-07）
+## 停用的 B6 内置应用（）
 
 | 应用 | 包名 | 说明 |
 |---|---|---|
